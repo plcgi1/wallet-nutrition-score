@@ -60,16 +60,6 @@ func (c *AssetCompositionCheck) Execute(ctx context.Context, address string) (*e
 
 	c.log.Debugf("ETH balance for address %s: %.6f", address, ethBalance)
 
-	// // Создаем список известных стабильных токенов
-	// stablecoins := map[string]bool{
-	// 	"0xdAC17F958D2ee523a2206206994597C13D831ec7": true, // USDT
-	// 	"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": true, // USDC
-	// 	"0x6B175474E89094C44Da98b954EedeAC495271d0F": true, // DAI
-	// 	"0x1456688345527bE1f37E9e627DA0837D6f08C925": true, // GUSD
-	// 	"0x57Ab1ec28D129707052df4dF418D58a2D46d5f51": true, // sUSD
-	// 	"0x0000000000085d4780B73119b644AE5ecd22b376": true, // TUSD
-	// }
-
 	// Преобразуем токены в нашу структуру TokenInfo
 	var tokenInfos []entity.TokenInfo
 
@@ -125,7 +115,6 @@ func (c *AssetCompositionCheck) Execute(ctx context.Context, address string) (*e
 			// В реальной реализации нужно получать цены из API (например, CoinGecko, CoinMarketCap)
 			usdValue = 0
 		}
-		fmt.Printf("token %v \n", token.TokenID)
 		tokenInfos = append(tokenInfos, entity.TokenInfo{
 			Address:    token.ContractAddress,
 			AddressURL: util.GetAdressURL(token.ContractAddress),

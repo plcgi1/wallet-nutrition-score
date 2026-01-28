@@ -119,6 +119,15 @@ func (c *AlchemyClient) GetETHBalance(ctx context.Context, address string) (floa
 	return ethFloat, nil
 }
 
+type AlchemyERC20Response struct {
+	Result struct {
+		TokenBalances []struct {
+			ContractAddress string `json:"contractAddress"`
+			TokenBalance    string `json:"tokenBalance"`
+		} `json:"tokenBalances"`
+	} `json:"result"`
+}
+
 // GetERC20Tokens - Получает список ERC20 токенов для адреса
 func (c *AlchemyClient) GetERC20Tokens(ctx context.Context, address string) ([]*TokenBalance, error) {
 	urlStr := fmt.Sprintf("%s/%s", c.baseURL, c.apiKey)
@@ -164,14 +173,7 @@ func (c *AlchemyClient) GetERC20Tokens(ctx context.Context, address string) ([]*
 		return nil, fmt.Errorf("Alchemy API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	var response struct {
-		Result struct {
-			TokenBalances []struct {
-				ContractAddress string `json:"contractAddress"`
-				TokenBalance    string `json:"tokenBalance"`
-			} `json:"tokenBalances"`
-		} `json:"result"`
-	}
+	var response AlchemyERC20Response
 
 	err = json.Unmarshal(body, &response)
 	if err != nil {
@@ -221,6 +223,22 @@ type AlchemyNFT struct {
 	TokenType       string `json:"tokenType"`
 }
 
+type AlchemyNFTApiResponse struct {
+	OwnedNfts []struct {
+		Contract struct {
+			Address string `json:"address"`
+		} `json:"contract"`
+		Id struct {
+			TokenID       string `json:"tokenId"`
+			TokenMetadata struct {
+				TokenType string `json:"tokenType"`
+			} `json:"tokenMetadata"`
+		} `json:"id"`
+		TokenType string `json:"tokenType"`
+	} `json:"ownedNfts"`
+	TotalCount int `json:"totalCount"`
+}
+
 // GetNFTs - Получает список NFT для адреса
 func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*AlchemyNFT, error) {
 	urlStr := fmt.Sprintf("%s/%s/getNFTsForOwner?owner=%s&omitMetadata=true", c.baseURL, c.apiKey, address)
@@ -241,6 +259,7 @@ func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*Alchemy
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
+
 	if err != nil {
 		c.log.Errorf("Failed to read response body: %v", err)
 		return nil, err
@@ -251,16 +270,7 @@ func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*Alchemy
 		return nil, fmt.Errorf("Alchemy API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	var response struct {
-		OwnedNfts []struct {
-			Contract struct {
-				Address string `json:"address"`
-			} `json:"contract"`
-			TokenID   string `json:"tokenId"`
-			TokenType string `json:"tokenType"`
-		} `json:"ownedNfts"`
-		TotalCount int `json:"totalCount"`
-	}
+	var response AlchemyNFTApiResponse
 
 	if err := json.Unmarshal(body, &response); err != nil {
 		c.log.Errorf("Failed to unmarshal response: %v", err)
@@ -274,13 +284,13 @@ func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*Alchemy
 			continue
 		}
 		// Проверяем, что у NFT есть контракт и токен ID
-		if nft.Contract.Address == "" || nft.TokenID == "" {
-			c.log.Warnf("Skipping invalid NFT: contract=%s, tokenId=%s", nft.Contract.Address, nft.TokenID)
+		if nft.Contract.Address == "" || nft.Id.TokenID == "" {
+			c.log.Warnf("Skipping invalid NFT: contract=%s, tokenId=%s", nft.Contract.Address, nft.Id.TokenID)
 			continue
 		}
 
 		// Генерируем уникальный ключ для проверки дубликатов
-		key := fmt.Sprintf("%s:%s", nft.Contract.Address, nft.TokenID)
+		key := fmt.Sprintf("%s:%s", nft.Contract.Address, nft.Id.TokenID)
 		if seen[key] {
 			c.log.Warnf("Skipping duplicate NFT: %s", key)
 			continue
@@ -289,8 +299,8 @@ func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*Alchemy
 		seen[key] = true
 		nfts = append(nfts, &AlchemyNFT{
 			ContractAddress: nft.Contract.Address,
-			TokenID:         nft.TokenID,
-			TokenType:       nft.TokenType,
+			TokenID:         nft.Id.TokenID,
+			TokenType:       nft.Id.TokenMetadata.TokenType,
 		})
 	}
 
