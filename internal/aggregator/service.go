@@ -39,12 +39,12 @@ func NewService(cfg *config.Config, factory CheckFactory, cache cache.Cache, log
 
 // CheckWallet - Проверяет безопасность кошелька
 func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.WalletReport, error) {
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(s.cfg.App.TimeoutSec)*time.Second)
+	// Создаем основной контекст с таймаутом
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(s.cfg.App.TimeoutSec)*time.Second)
 	defer cancel()
-
 	// Проверяем кэш
 	if s.cache != nil {
-		cachedReport, err := s.cache.GetWalletReport(ctx, address)
+		cachedReport, err := s.cache.GetWalletReport(ctxWithTimeout, address)
 		if err != nil {
 			s.log.Errorf("Failed to get cached report: %v", err)
 		}
@@ -54,8 +54,8 @@ func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.Wall
 		}
 	}
 
-	// Создаем группу для параллельного запуска проверок
-	g, ctx := errgroup.WithContext(ctx)
+	// Создаем группу для параллельного запуска проверок с отдельным контекстом
+	g, errGrpCtx := errgroup.WithContext(ctxWithTimeout)
 
 	// Получаем все доступные проверки
 	checkTypes := checker.GetAllCheckTypes()
@@ -72,7 +72,7 @@ func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.Wall
 			}
 
 			s.log.Debugf("Executing check: %s for address: %s", check.Name(), address)
-			result, err := check.Execute(ctx, address)
+			result, err := check.Execute(errGrpCtx, address)
 			if err != nil {
 				errorsChan <- err
 				return nil
@@ -123,9 +123,9 @@ func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.Wall
 
 	s.log.Infof("Check completed for address: %s, score: %.2f", address, score)
 
-	// Сохраняем в кэш
+	// Сохраняем в кэш используя основной контекст с таймаутом
 	if s.cache != nil {
-		if err := s.cache.SetWalletReport(ctx, address, report); err != nil {
+		if err := s.cache.SetWalletReport(ctxWithTimeout, address, report); err != nil {
 			s.log.Errorf("Failed to cache report: %v", err)
 		}
 	}

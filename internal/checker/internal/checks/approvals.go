@@ -3,13 +3,31 @@ package checks
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"wallet-nutrition-score/config"
 	"wallet-nutrition-score/internal/entity"
 	"wallet-nutrition-score/internal/provider"
+	"wallet-nutrition-score/pkg/util"
 
 	"github.com/sirupsen/logrus"
 )
+
+//
+// 1. Где взять адреса с Dangerous Approvals (Опасные разрешения)
+// 	Самый верный способ найти кошельки с плохими аппрувами — посмотреть на жертв дрейнеров (Wallet Drainers).
+// Это люди, которые подписали Approve мошеннику, и их обокрали.
+// Но часто у них остаются другие неотмененные аппрувы.
+// 	Алгоритм поиска:
+// 		Зайдите на Etherscan.
+// 		В поиске введите тег: Fake_Phishing или найдите известные адреса дрейнеров (например, Pink Drainer или Inferno Drainer).
+// 		Откройте адрес мошенника.
+// 		Перейдите во вкладку Transactions (или ERC-20 Token Txns).
+// 		Посмотрите на колонку From. Адреса, которые отправляли токены на адрес мошенника — это жертвы.
+// 		Возьмите любой адрес из колонки From. Скорее всего, у этого кошелька куча «висящих» аппрувов на фишинговые контракты.
+// Пример для теста (жертвы хаков):
+// 		Посмотрите входящие транзакции на адреса, помеченные как Exploit или Heist.
+// Поищите "Orbit Bridge Exploiter" или "Multichain Exploiter" на Etherscan. Входящие переводы шли от пострадавших пользователей.
 
 // ApprovalsCheck - Проверка токен approvals
 type ApprovalsCheck struct {
@@ -37,7 +55,7 @@ func (c *ApprovalsCheck) Name() string {
 
 // Execute - Выполняет проверку
 func (c *ApprovalsCheck) Execute(ctx context.Context, address string) (*entity.CheckResult, error) {
-	c.log.Debug("Checking approvals for address: %s", address)
+	c.log.Debugf("Checking approvals for address: %s", address)
 
 	// Получаем данные из GoPlus API
 	resp, err := c.goplusProvider.GetTokenApprovals(ctx, address)
@@ -47,36 +65,41 @@ func (c *ApprovalsCheck) Execute(ctx context.Context, address string) (*entity.C
 
 	// Анализируем результаты
 	var riskyApprovals []entity.ApprovalInfo
-	var targetApprovals []provider.ApprovedSpender
 	for _, tokenApproval := range resp.Result {
-		var isRisky bool
 		for _, approval := range tokenApproval.ApprovedList {
-			if approval.ApprovedAmount == "Unlimited" {
-				targetApprovals = append(targetApprovals, approval)
-			}
-		}
-		if tokenApproval.MaliciousAddress > 0 {
-			isRisky = true
-		}
-		// Определяем, является ли approval рискованным
-		// switch {
-		// case approval.MaliciousAddress:
-		// 	isRisky = true
-		// case approval.Exposure > 0:
-		// 	isRisky = true
-		// case approval.ApprovalType == "Unlimited":
-		// 	isRisky = true
-		// }
+			var isRisky bool
 
-		if isRisky {
-			riskyApprovals = append(riskyApprovals, entity.ApprovalInfo{
-				TokenAddress:    tokenApproval.TokenAddress,
-				TokenName:       tokenApproval.TokenName,
-				SpenderAddress:  targetApproval.ApprovedContract,
-				ExposureBalance: 0,
-				IsUnlimited:     targetApproval.ApprovedAmount == "Unlimited",
-				IsMalicious:     tokenApproval.MaliciousAddress > 0,
-			})
+			// Определяем, является ли approval рискованным
+			switch {
+			case tokenApproval.MaliciousAddress > 0:
+				isRisky = true
+			case approval.ApprovedAmount == "Unlimited":
+				isRisky = true
+			case approval.AddressInfo.DoubtList > 0:
+				isRisky = true
+			case len(approval.AddressInfo.MaliciousBehavior) > 0:
+				isRisky = true
+			}
+
+			if isRisky {
+				// Calculate exposure balance
+				exposureBalance := calculateExposureBalance(
+					approval.ApprovedAmount,
+					tokenApproval.Balance,
+					tokenApproval.Decimals,
+				)
+
+				riskyApprovals = append(riskyApprovals, entity.ApprovalInfo{
+					TokenAddress:    tokenApproval.TokenAddress,
+					TokenURL:        util.GetAdressURL(tokenApproval.TokenAddress),
+					TokenName:       tokenApproval.TokenName,
+					SpenderAddress:  approval.ApprovedContract,
+					SpenderURL:      util.GetAdressURL(approval.ApprovedContract),
+					ExposureBalance: exposureBalance,
+					IsUnlimited:     approval.ApprovedAmount == "Unlimited",
+					IsMalicious:     tokenApproval.MaliciousAddress > 0 || len(approval.AddressInfo.MaliciousBehavior) > 0,
+				})
+			}
 		}
 	}
 
@@ -135,4 +158,46 @@ func (c *ApprovalsCheck) isHigherRisk(a, b entity.RiskLevel) bool {
 	}
 
 	return levels[a] > levels[b]
+}
+
+// calculateExposureBalance - Calculates exposure balance
+func calculateExposureBalance(approvedAmount, tokenBalance string, decimals int) float64 {
+	if approvedAmount == "Unlimited" {
+		// If unlimited, exposure is total token balance
+		balance, err := parseTokenAmount(tokenBalance, decimals)
+		if err != nil {
+			return 0
+		}
+		return balance
+	}
+
+	// If limited, exposure is min(approvedAmount, tokenBalance)
+	approved, err1 := parseTokenAmount(approvedAmount, decimals)
+	balance, err2 := parseTokenAmount(tokenBalance, decimals)
+
+	if err1 != nil || err2 != nil {
+		return 0
+	}
+
+	if approved < balance {
+		return approved
+	}
+
+	return balance
+}
+
+// parseTokenAmount - Parse token amount from string to float64 considering decimals
+func parseTokenAmount(amountStr string, decimals int) (float64, error) {
+	amountBig, ok := new(big.Int).SetString(amountStr, 10)
+	if !ok {
+		return 0, fmt.Errorf("failed to parse amount: %s", amountStr)
+	}
+
+	// Convert to float64 with decimals
+	decimalFactor := new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
+	amountFloat := new(big.Float).SetInt(amountBig)
+	amountFloat.Quo(amountFloat, decimalFactor)
+
+	result, _ := amountFloat.Float64()
+	return result, nil
 }

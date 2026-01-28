@@ -30,19 +30,23 @@ const (
 
 // TokenInfo - Информация о токене
 type TokenInfo struct {
-	Address  string  `json:"address"`
-	Name     string  `json:"name"`
-	Symbol   string  `json:"symbol"`
-	Balance  float64 `json:"balance"`
-	USDValue float64 `json:"usd_value"`
-	IsStable bool    `json:"is_stable"`
+	Address    string  `json:"address"`
+	AddressURL string  `json:"addressURL"`
+	Name       string  `json:"name"`
+	Symbol     string  `json:"symbol"`
+	Balance    float64 `json:"balance"`
+	USDValue   float64 `json:"usd_value"`
+	IsStable   bool    `json:"is_stable"`
 }
 
 // ApprovalInfo - Информация о разрешении на токен
 type ApprovalInfo struct {
 	TokenAddress    string  `json:"token_address"`
+	TokenURL        string  `json:"token_url"`
 	TokenName       string  `json:"token_name"`
 	SpenderAddress  string  `json:"spender_address"`
+	SpenderURL      string  `json:"spender_url"`
+	ApprovedAmount  string  `json:"approved_amount"`
 	ExposureBalance float64 `json:"exposure_balance"`
 	IsUnlimited     bool    `json:"is_unlimited"`
 	IsMalicious     bool    `json:"is_malicious"`

@@ -57,6 +57,7 @@ func main() {
 	// Инициализация провайдеров
 	goplusClient := provider.NewGoPlusClient(cfg, log)
 	etherscanClient := provider.NewEtherscanClient(cfg, log)
+	alchemyClient := provider.NewAlchemyClient(cfg, log)
 
 	// Инициализация Redis кэша
 	var redisCache cache.Cache
@@ -66,7 +67,7 @@ func main() {
 	}
 
 	// Инициализация фабрики проверок
-	checkerFactory := checker.NewFactory(cfg, goplusClient, etherscanClient, log)
+	checkerFactory := checker.NewFactory(cfg, goplusClient, etherscanClient, alchemyClient, log)
 
 	// Инициализация агрегатора
 	aggregatorService := aggregator.NewService(cfg, checkerFactory, redisCache, log)

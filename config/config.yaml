@@ -4,12 +4,16 @@ app:
   timeout_sec: 30
 
 goplus:
-  key: "YOUR_KEY"
-  secret: "YOUR_SECRET"
+  key: "USE-KEY-FROM-.env"
+  secret: "USE-SECRET-FROM-.env"
 
 etherscan:
   url: "https://api.etherscan.io"
-  key: "YOUR_KEY"
+  key: "USE-KEY-FROM-.env"
+
+alchemy:
+  api_key: "USE-KEY-FROM-.env"
+  url: "https://eth-mainnet.g.alchemy.com/v2"
 
 redis:
   addr: "localhost:6379"

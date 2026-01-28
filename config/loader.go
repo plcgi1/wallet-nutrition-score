@@ -23,6 +23,10 @@ type Config struct {
 		URL    string `yaml:"url"`
 		ApiKey string `yaml:"key"`
 	}
+	Alchemy struct {
+		ApiKey string `yaml:"api_key"`
+		URL    string `yaml:"url"`
+	} `yaml:"alchemy"`
 	Redis struct {
 		Addr     string `yaml:"addr"`
 		Password string `yaml:"password"`
@@ -66,11 +70,17 @@ func Load() (*Config, error) {
 	if goplusSecret := getEnv("GOPLUS_API_SECRET", ""); goplusSecret != "" {
 		config.GoPlus.ApiSecret = goplusSecret
 	}
-	if etherscanURL := getEnv("ETHERSCAN_URL", ""); etherscanURL != "" {
+	if etherscanURL := getEnv("ETHERSCAN_API_URL", ""); etherscanURL != "" {
 		config.Etherscan.URL = etherscanURL
 	}
 	if etherscanApiKey := getEnv("ETHERSCAN_API_KEY", ""); etherscanApiKey != "" {
 		config.Etherscan.ApiKey = etherscanApiKey
+	}
+	if alchemyApiKey := getEnv("ALCHEMY_RPC_API_KEY", ""); alchemyApiKey != "" {
+		config.Alchemy.ApiKey = alchemyApiKey
+	}
+	if alchemyURL := getEnv("ALCHEMY_API_URL", ""); alchemyURL != "" {
+		config.Alchemy.URL = alchemyURL
 	}
 	if redisAddr := getEnv("REDIS_ADDR", ""); redisAddr != "" {
 		config.Redis.Addr = redisAddr

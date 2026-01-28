@@ -75,52 +75,10 @@ type TokenBalance struct {
 
 // GetERC20Tokens - Получает список ERC20 токенов для адреса
 func (c *EtherscanClient) GetERC20Tokens(ctx context.Context, address string) ([]*TokenBalance, error) {
-	params := url.Values{}
-	params.Set("module", "account")
-	params.Set("action", "tokennftxferbyaddress")
-	params.Set("address", address)
-	params.Set("page", "1")
-	params.Set("offset", "100")
-	params.Set("sort", "desc")
-	params.Set("apikey", c.apiKey)
-
-	urlStr := fmt.Sprintf("%s/api?%s", c.baseURL, params.Encode())
-	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Etherscan API request failed: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return nil, err
-	}
-
-	var result struct {
-		Status  string          `json:"status"`
-		Message string          `json:"message"`
-		Result  []*TokenBalance `json:"result"`
-	}
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
-		return nil, err
-	}
-
-	if result.Status != "1" {
-		c.log.Errorf("Etherscan API error: %s", result.Message)
-		return nil, fmt.Errorf("Etherscan API error: %s", result.Message)
-	}
-
-	return result.Result, nil
+	// NOTE: Этот метод использует неправильный endpoint!
+	// Для получения токенов на кошельке нужно использовать Moralis API
+	c.log.Warnf("Etherscan API does not support getting all ERC20 tokens for address. Use Moralis API instead.")
+	return nil, fmt.Errorf("Etherscan API does not support getting all ERC20 tokens for address")
 }
 
 // GetETHBalance - Получает баланс ETH для адреса
@@ -133,6 +91,7 @@ func (c *EtherscanClient) GetETHBalance(ctx context.Context, address string) (fl
 	params.Set("apikey", c.apiKey)
 
 	urlStr := fmt.Sprintf("%s/api?%s", c.baseURL, params.Encode())
+
 	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	if err != nil {
 		return 0, err

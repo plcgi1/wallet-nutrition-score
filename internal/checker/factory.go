@@ -13,15 +13,17 @@ type Factory struct {
 	cfg            *config.Config
 	goplusProvider *provider.GoPlusClient
 	etherscan      *provider.EtherscanClient
+	alchemy        *provider.AlchemyClient
 	log            *logrus.Logger
 }
 
 // NewFactory - Создает новую фабрику проверок
-func NewFactory(cfg *config.Config, goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, log *logrus.Logger) *Factory {
+func NewFactory(cfg *config.Config, goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, alchemy *provider.AlchemyClient, log *logrus.Logger) *Factory {
 	return &Factory{
 		cfg:            cfg,
 		goplusProvider: goplusProvider,
 		etherscan:      etherscan,
+		alchemy:        alchemy,
 		log:            log,
 	}
 }
@@ -32,13 +34,11 @@ func (f *Factory) CreateCheck(t CheckType) IHealthCheck {
 	case CheckApprovals:
 		return checks.NewApprovalsCheck(f.goplusProvider, f.etherscan, f.cfg, f.log)
 	case CheckScamTokens:
-		return checks.NewScamTokensCheck(f.goplusProvider, f.etherscan, f.cfg, f.log)
-	case CheckRugPull:
-		return checks.NewRugPullCheck(f.goplusProvider, f.etherscan, f.cfg, f.log)
+		return checks.NewScamTokensCheck(f.goplusProvider, f.alchemy, f.cfg, f.log)
 	case CheckAssets:
-		return checks.NewAssetCompositionCheck(f.goplusProvider, f.etherscan, f.cfg, f.log)
+		return checks.NewAssetCompositionCheck(f.goplusProvider, f.alchemy, f.cfg, f.log)
 	case CheckNFT:
-		return checks.NewDeadNFTCheck(f.goplusProvider, f.cfg, f.log)
+		return checks.NewDeadNFTCheck(f.goplusProvider, f.alchemy, f.cfg, f.log)
 	default:
 		return nil
 	}
@@ -48,9 +48,8 @@ func (f *Factory) CreateCheck(t CheckType) IHealthCheck {
 func GetAllCheckTypes() []CheckType {
 	return []CheckType{
 		CheckApprovals,
-		// CheckScamTokens,
-		// CheckRugPull,
-		// CheckAssets,
-		// CheckNFT,
+		CheckScamTokens,
+		CheckAssets,
+		CheckNFT,
 	}
 }

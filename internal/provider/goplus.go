@@ -1,13 +1,13 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"wallet-nutrition-score/config"
@@ -80,32 +80,34 @@ type AddressInfo struct {
 	IsOpenSource      int           `json:"is_open_source"`
 }
 
-// TokenApprovalResponse - Ответ API GoPlus для токен approvals
-// type TokenApprovalResponse struct {
-// 	Code    int    `json:"code"`
-// 	Message string `json:"message"`
-// 	Result  struct {
-// 		Address   string `json:"address"`
-// 		Approvals []struct {
-// 			TokenAddress string  `json:"token_address"`
-// 			TokenName    string  `json:"token_name"`
-// 			Spender      string  `json:"spender"`
-// 			Exposure     float64 `json:"exposure_balance"`
-// 			ApprovalType string  `json:"approval_type"`
-// 			IsMalicious  bool    `json:"is_malicious_spender"`
-// 		} `json:"approvals"`
-// 	} `json:"result"`
-// }
-
 // TokenSecurityResponse - Ответ API GoPlus для токен security
 type TokenSecurityResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Result  map[string]struct {
-		IsHoneypot    bool `json:"is_honeypot"`
-		CannotSellAll bool `json:"cannot_sell_all"`
-		IsBlacklisted bool `json:"is_blacklisted"`
-		IsFakeToken   bool `json:"is_fake_token"`
+		BuyTax         string `json:"buy_tax"`
+		CannotBuy      string `json:"cannot_buy"`
+		CreatorAddress string `json:"creator_address"`
+		CreatorBalance string `json:"creator_balance"`
+		CreatorPercent string `json:"creator_percent"`
+		HolderCount    string `json:"holder_count"`
+		Holders        []struct {
+			Address    string `json:"address"`
+			Tag        string `json:"tag"`
+			IsContract int    `json:"is_contract"`
+			Balance    string `json:"balance"`
+			Percent    string `json:"percent"`
+			IsLocked   int    `json:"is_locked"`
+		} `json:"holders"`
+		HoneypotWithSameCreator string `json:"honeypot_with_same_creator"`
+		IsInDex                 string `json:"is_in_dex"`
+		IsOpenSource            string `json:"is_open_source"`
+		IsProxy                 string `json:"is_proxy"`
+		OwnerAddress            string `json:"owner_address"`
+		SellTax                 string `json:"sell_tax"`
+		TokenName               string `json:"token_name"`
+		TokenSymbol             string `json:"token_symbol"`
+		TotalSupply             string `json:"total_supply"`
 	} `json:"result"`
 }
 
@@ -121,6 +123,7 @@ func (c *GoPlusClient) GetTokenApprovals(ctx context.Context, address string) (*
 	req.Header.Set("API-Key", c.apiKey)
 
 	resp, err := c.client.Do(req)
+
 	if err != nil {
 		return nil, err
 	}
@@ -131,16 +134,12 @@ func (c *GoPlusClient) GetTokenApprovals(ctx context.Context, address string) (*
 		return nil, err
 	}
 
-	// 2. Логируем (превращаем в строку)
-	logrus.WithField("body", string(bodyBytes)).Info("Response received")
-	// fmt.Printf("RESPONSE BODY: %s\n", string(bodyBytes))
-
 	var result TokenApprovalResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
 		return nil, err
 	}
 
-	if result.Code != 200 {
+	if result.Code != 1 {
 		return nil, fmt.Errorf("GoPlus API error: %s", result.Message)
 	}
 
@@ -149,18 +148,8 @@ func (c *GoPlusClient) GetTokenApprovals(ctx context.Context, address string) (*
 
 // GetTokenSecurity - Получает информацию о безопасности токенов
 func (c *GoPlusClient) GetTokenSecurity(ctx context.Context, tokenAddresses []string) (*TokenSecurityResponse, error) {
-	payload := map[string]interface{}{
-		"chain_id":           1,
-		"contract_addresses": tokenAddresses,
-	}
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	url := "https://api.gopluslabs.io/api/v1/token_security/security"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(data))
+	url := fmt.Sprintf("https://api.gopluslabs.io/api/v1/token_security/1?contract_addresses=%s", strings.Join(tokenAddresses, ","))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +168,7 @@ func (c *GoPlusClient) GetTokenSecurity(ctx context.Context, tokenAddresses []st
 		return nil, err
 	}
 
-	if result.Code != 200 {
+	if result.Code != 1 {
 		return nil, fmt.Errorf("GoPlus API error: %s", result.Message)
 	}
 
