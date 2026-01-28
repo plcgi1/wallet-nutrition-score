@@ -68,16 +68,17 @@ type ScamTokensCheck struct {
 	goPlusProvider *provider.GoPlusClient
 	alchemyClient  *provider.AlchemyClient
 	cfg            *config.Config
-	log            *logrus.Logger
+	log            *logrus.Entry
 }
 
 // NewScamTokensCheck - Создает новую проверку на скам-токены
-func NewScamTokensCheck(goPlusProvider *provider.GoPlusClient, alchemyClient *provider.AlchemyClient, cfg *config.Config, log *logrus.Logger) *ScamTokensCheck {
+func NewScamTokensCheck(goPlusProvider *provider.GoPlusClient, alchemyClient *provider.AlchemyClient, cfg *config.Config, log *logrus.Entry) *ScamTokensCheck {
+	logger := log.WithFields(logrus.Fields{"component": "scam_tokens"})
 	return &ScamTokensCheck{
 		goPlusProvider: goPlusProvider,
 		alchemyClient:  alchemyClient,
 		cfg:            cfg,
-		log:            log,
+		log:            logger,
 	}
 }
 

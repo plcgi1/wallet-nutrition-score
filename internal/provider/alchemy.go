@@ -21,22 +21,23 @@ type AlchemyClient struct {
 	apiKey  string
 	baseURL string
 	client  *http.Client
-	log     *logrus.Logger
+	log     *logrus.Entry
 }
 
 // NewAlchemyClient - Создает новый клиент для Alchemy API
-func NewAlchemyClient(cfg *config.Config, log *logrus.Logger) *AlchemyClient {
+func NewAlchemyClient(cfg *config.Config, log *logrus.Entry) *AlchemyClient {
 	baseURL := cfg.Alchemy.URL
 	if baseURL == "" {
 		baseURL = "https://eth-mainnet.g.alchemy.com/v2"
 	}
+	logger := log.WithFields(logrus.Fields{"component": "alchemy"})
 	return &AlchemyClient{
 		apiKey:  cfg.Alchemy.ApiKey,
 		baseURL: baseURL,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		log: log,
+		log: logger,
 	}
 }
 

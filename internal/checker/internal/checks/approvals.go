@@ -34,12 +34,12 @@ type ApprovalsCheck struct {
 	goplusProvider *provider.GoPlusClient
 	etherscan      *provider.EtherscanClient
 	cfg            *config.Config
-	log            *logrus.Logger
+	log            *logrus.Entry
 }
 
 // NewApprovalsCheck - Создает новую проверку approvals
-func NewApprovalsCheck(goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, cfg *config.Config, log *logrus.Logger) *ApprovalsCheck {
-	logger := log.WithFields(logrus.Fields{"component": "approvals"}).Logger
+func NewApprovalsCheck(goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, cfg *config.Config, log *logrus.Entry) *ApprovalsCheck {
+	logger := log.WithFields(logrus.Fields{"component": "approvals"})
 	return &ApprovalsCheck{
 		goplusProvider: goplusProvider,
 		etherscan:      etherscan,

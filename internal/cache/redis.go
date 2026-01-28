@@ -27,11 +27,12 @@ type Cache interface {
 // RedisCache - Реализация кэша с помощью Redis
 type RedisCache struct {
 	client *redis.Client
-	log    *logrus.Logger
+	log    *logrus.Entry
 }
 
 // NewRedisCache - Создает новый Redis кэш
-func NewRedisCache(cfg *config.Config, log *logrus.Logger) (*RedisCache, error) {
+func NewRedisCache(cfg *config.Config, log *logrus.Entry) (*RedisCache, error) {
+	logger := log.WithFields(logrus.Fields{"component": "redis"})
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.Addr,
 		Password: cfg.Redis.Password,
@@ -48,11 +49,11 @@ func NewRedisCache(cfg *config.Config, log *logrus.Logger) (*RedisCache, error) 
 		return nil, err
 	}
 
-	log.Info("Successfully connected to Redis")
+	logger.Info("Successfully connected to Redis")
 
 	return &RedisCache{
 		client: client,
-		log:    log,
+		log:    logger,
 	}, nil
 }
 

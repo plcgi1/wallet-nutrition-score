@@ -72,13 +72,14 @@ func NewMulticallClient(rpcURL string, log *logrus.Logger) (*MulticallClient, er
 		return nil, fmt.Errorf("failed to parse contract ABI: %w", err)
 	}
 
-	log.Info("Successfully connected to Multicall contract")
+	logger := log.WithFields(logrus.Fields{"component": "multicall"}).Logger
+	logger.Info("Successfully connected to Multicall contract")
 
 	return &MulticallClient{
 		client:        client,
 		multicallAddr: multicallAddr,
 		contractABI:   multicallABI,
-		log:           log,
+		log:           logger,
 	}, nil
 }
 

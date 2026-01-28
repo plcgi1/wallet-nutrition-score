@@ -23,12 +23,12 @@ type Service struct {
 	cfg     *config.Config
 	factory CheckFactory
 	cache   cache.Cache
-	log     *logrus.Logger
+	log     *logrus.Entry
 }
 
 // NewService - Создает новый агрегатор
-func NewService(cfg *config.Config, factory CheckFactory, cache cache.Cache, log *logrus.Logger) *Service {
-	logger := log.WithFields(logrus.Fields{"component": "service"}).Logger
+func NewService(cfg *config.Config, factory CheckFactory, cache cache.Cache, log *logrus.Entry) *Service {
+	logger := log.WithFields(logrus.Fields{"component": "service"})
 	return &Service{
 		cfg:     cfg,
 		factory: factory,
@@ -123,6 +123,10 @@ func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.Wall
 
 	s.log.Infof("Check completed for address: %s, score: %.2f", address, score)
 
+	// предотвращаем кеширование - если были ошибки провайдеров
+	if len(errors) > 0 {
+		return report, nil
+	}
 	// Сохраняем в кэш используя основной контекст с таймаутом
 	if s.cache != nil {
 		if err := s.cache.SetWalletReport(ctxWithTimeout, address, report); err != nil {

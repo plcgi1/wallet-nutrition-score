@@ -24,10 +24,24 @@ func TestCheckWallet(t *testing.T) {
 			Port       int    `yaml:"port"`
 			LogLevel   string `yaml:"log_level"`
 			TimeoutSec int    `yaml:"timeout_sec"`
+			RateLimit  struct {
+				Enabled  bool `yaml:"enabled"`
+				Requests int  `yaml:"requests"`
+				Window   int  `yaml:"window_seconds"`
+			} `yaml:"rate_limit"`
 		}{
 			Port:       8080,
 			LogLevel:   "debug",
 			TimeoutSec: 30,
+			RateLimit: struct {
+				Enabled  bool `yaml:"enabled"`
+				Requests int  `yaml:"requests"`
+				Window   int  `yaml:"window_seconds"`
+			}{
+				Enabled:  false,
+				Requests: 100,
+				Window:   60,
+			},
 		},
 		Scoring: struct {
 			BaseScore float64            `yaml:"base_score"`
@@ -51,7 +65,8 @@ func TestCheckWallet(t *testing.T) {
 	mockCache := &mockCache{}
 
 	// Создаем сервис
-	service := NewService(cfg, mockFactory, mockCache, log)
+
+	service := NewService(cfg, mockFactory, mockCache, log.WithContext(t.Context()))
 
 	// Тестируем проверку кошелька
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

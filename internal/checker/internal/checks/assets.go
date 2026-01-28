@@ -19,16 +19,17 @@ type AssetCompositionCheck struct {
 	goplusProvider *provider.GoPlusClient
 	alchemy        *provider.AlchemyClient
 	cfg            *config.Config
-	log            *logrus.Logger
+	log            *logrus.Entry
 }
 
 // NewAssetCompositionCheck - Создает новую проверку состава активов
-func NewAssetCompositionCheck(goplusProvider *provider.GoPlusClient, alchemy *provider.AlchemyClient, cfg *config.Config, log *logrus.Logger) *AssetCompositionCheck {
+func NewAssetCompositionCheck(goplusProvider *provider.GoPlusClient, alchemy *provider.AlchemyClient, cfg *config.Config, log *logrus.Entry) *AssetCompositionCheck {
+	logger := log.WithFields(logrus.Fields{"component": "assets"})
 	return &AssetCompositionCheck{
 		goplusProvider: goplusProvider,
 		alchemy:        alchemy,
 		cfg:            cfg,
-		log:            log,
+		log:            logger,
 	}
 }
 

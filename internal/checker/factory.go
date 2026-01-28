@@ -14,11 +14,11 @@ type Factory struct {
 	goplusProvider *provider.GoPlusClient
 	etherscan      *provider.EtherscanClient
 	alchemy        *provider.AlchemyClient
-	log            *logrus.Logger
+	log            *logrus.Entry
 }
 
 // NewFactory - Создает новую фабрику проверок
-func NewFactory(cfg *config.Config, goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, alchemy *provider.AlchemyClient, log *logrus.Logger) *Factory {
+func NewFactory(cfg *config.Config, goplusProvider *provider.GoPlusClient, etherscan *provider.EtherscanClient, alchemy *provider.AlchemyClient, log *logrus.Entry) *Factory {
 	return &Factory{
 		cfg:            cfg,
 		goplusProvider: goplusProvider,

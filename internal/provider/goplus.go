@@ -20,18 +20,19 @@ type GoPlusClient struct {
 	apiKey    string
 	apiSecret string
 	client    *http.Client
-	log       *logrus.Logger
+	log       *logrus.Entry
 }
 
 // NewGoPlusClient - Создает новый клиент GoPlus
-func NewGoPlusClient(cfg *config.Config, log *logrus.Logger) *GoPlusClient {
+func NewGoPlusClient(cfg *config.Config, log *logrus.Entry) *GoPlusClient {
+	logger := log.WithFields(logrus.Fields{"component": "goplus"})
 	return &GoPlusClient{
 		apiKey:    cfg.GoPlus.ApiKey,
 		apiSecret: cfg.GoPlus.ApiSecret,
 		client: &http.Client{
 			Timeout: time.Duration(cfg.App.TimeoutSec) * time.Second,
 		},
-		log: log,
+		log: logger,
 	}
 }
 

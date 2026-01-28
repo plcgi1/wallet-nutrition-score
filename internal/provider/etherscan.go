@@ -20,22 +20,23 @@ type EtherscanClient struct {
 	apiKey  string
 	baseURL string
 	client  *http.Client
-	log     *logrus.Logger
+	log     *logrus.Entry
 }
 
 // NewEtherscanClient - Создает новый клиент Etherscan
-func NewEtherscanClient(cfg *config.Config, log *logrus.Logger) *EtherscanClient {
+func NewEtherscanClient(cfg *config.Config, log *logrus.Entry) *EtherscanClient {
 	baseURL := cfg.Etherscan.URL
 	if baseURL == "" {
 		baseURL = "https://api.etherscan.io"
 	}
+	logger := log.WithFields(logrus.Fields{"component": "etherscan"})
 	return &EtherscanClient{
 		apiKey:  cfg.Etherscan.ApiKey,
 		baseURL: baseURL,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		log: log,
+		log: logger,
 	}
 }
 

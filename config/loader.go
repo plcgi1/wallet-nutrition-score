@@ -14,6 +14,11 @@ type Config struct {
 		Port       int    `yaml:"port"`
 		LogLevel   string `yaml:"log_level"`
 		TimeoutSec int    `yaml:"timeout_sec"`
+		RateLimit  struct {
+			Enabled  bool `yaml:"enabled"`
+			Requests int  `yaml:"requests"`
+			Window   int  `yaml:"window_seconds"`
+		} `yaml:"rate_limit"`
 	} `yaml:"app"`
 	GoPlus struct {
 		ApiKey    string `yaml:"key"`

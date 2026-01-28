@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"wallet-nutrition-score/internal/cache"
 	"wallet-nutrition-score/internal/checker"
 	"wallet-nutrition-score/internal/entity"
+	"wallet-nutrition-score/internal/middleware"
 	"wallet-nutrition-score/internal/provider"
 	"wallet-nutrition-score/pkg/logger"
 
@@ -55,22 +57,22 @@ func main() {
 	log.Info("Application starting up")
 
 	// Инициализация провайдеров
-	goplusClient := provider.NewGoPlusClient(cfg, log)
-	etherscanClient := provider.NewEtherscanClient(cfg, log)
-	alchemyClient := provider.NewAlchemyClient(cfg, log)
+	goplusClient := provider.NewGoPlusClient(cfg, log.WithContext(&gin.Context{}))
+	etherscanClient := provider.NewEtherscanClient(cfg, log.WithContext(&gin.Context{}))
+	alchemyClient := provider.NewAlchemyClient(cfg, log.WithContext(&gin.Context{}))
 
 	// Инициализация Redis кэша
 	var redisCache cache.Cache
-	redisCache, err = cache.NewRedisCache(cfg, log)
+	redisCache, err = cache.NewRedisCache(cfg, log.WithContext(&gin.Context{}))
 	if err != nil {
 		log.Warnf("Failed to initialize Redis cache: %v. Cache will not be available.", err)
 	}
 
 	// Инициализация фабрики проверок
-	checkerFactory := checker.NewFactory(cfg, goplusClient, etherscanClient, alchemyClient, log)
+	checkerFactory := checker.NewFactory(cfg, goplusClient, etherscanClient, alchemyClient, log.WithContext(&gin.Context{}))
 
 	// Инициализация агрегатора
-	aggregatorService := aggregator.NewService(cfg, checkerFactory, redisCache, log)
+	aggregatorService := aggregator.NewService(cfg, checkerFactory, redisCache, log.WithContext(&gin.Context{}))
 
 	// Настройка Gin
 	if cfg.App.LogLevel == "debug" {
@@ -79,9 +81,44 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
-	r.Use(gin.Logger())
+	// Настраиваем Gin для использования JSON логов вместо текстовых
+	gin.DefaultWriter = os.Stdout
+	r := gin.New()
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		logEntry := map[string]interface{}{
+			"time":     param.TimeStamp.Format(time.RFC3339),
+			"method":   param.Method,
+			"path":     param.Path,
+			"status":   param.StatusCode,
+			"latency":  param.Latency.String(),
+			"clientIP": param.ClientIP,
+			"error":    param.ErrorMessage,
+		}
+		jsonStr, err := json.Marshal(logEntry)
+		if err != nil {
+			return fmt.Sprintf("Error formatting log: %v\n", err)
+		}
+		return string(jsonStr) + "\n"
+	}))
 	r.Use(gin.Recovery())
+
+	// Rate Limiter middleware
+	if cfg.App.RateLimit.Enabled {
+		log.Infof("Rate limiting enabled: %d requests per %d seconds",
+			cfg.App.RateLimit.Requests, cfg.App.RateLimit.Window)
+		rl := middleware.NewRateLimiter(cfg, log)
+		r.Use(rl.RateLimitMiddleware())
+
+		// Periodically clear expired rate limit entries (every window duration)
+		go func() {
+			ticker := time.NewTicker(rl.Window)
+			defer ticker.Stop()
+
+			for range ticker.C {
+				rl.ClearExpiredEntries()
+			}
+		}()
+	}
 
 	// Swagger endpoint
 	// url := ginSwagger.URL("http://localhost:8080/swagger/doc.json")

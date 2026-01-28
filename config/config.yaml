@@ -2,6 +2,10 @@ app:
   port: 8080
   log_level: "debug"
   timeout_sec: 30
+  rate_limit:
+    enabled: true
+    requests: 100
+    window_seconds: 60
 
 goplus:
   key: "USE-KEY-FROM-.env"

@@ -16,16 +16,17 @@ type DeadNFTCheck struct {
 	goplusProvider *provider.GoPlusClient
 	alchemy        *provider.AlchemyClient
 	cfg            *config.Config
-	log            *logrus.Logger
+	log            *logrus.Entry
 }
 
 // NewDeadNFTCheck - Создает новую проверку на мертвые NFT
-func NewDeadNFTCheck(goplusProvider *provider.GoPlusClient, alchemy *provider.AlchemyClient, cfg *config.Config, log *logrus.Logger) *DeadNFTCheck {
+func NewDeadNFTCheck(goplusProvider *provider.GoPlusClient, alchemy *provider.AlchemyClient, cfg *config.Config, log *logrus.Entry) *DeadNFTCheck {
+	logger := log.WithFields(logrus.Fields{"component": "dead_nft"})
 	return &DeadNFTCheck{
 		goplusProvider: goplusProvider,
 		alchemy:        alchemy,
 		cfg:            cfg,
-		log:            log,
+		log:            logger,
 	}
 }
 
