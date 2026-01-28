@@ -1,0 +1,49 @@
+package entity
+
+// WalletReport - Финальный отчет о безопасности кошелька
+type WalletReport struct {
+	Address string        `json:"address"`
+	Score   float64       `json:"score"`
+	Checks  []CheckResult `json:"checks"`
+	Errors  []string      `json:"errors,omitempty"`
+}
+
+// CheckResult - Результат одной проверки
+type CheckResult struct {
+	CheckName    string      `json:"check_name"`
+	RiskFound    bool        `json:"risk_found"`
+	RiskLevel    RiskLevel   `json:"risk_level"`
+	ScorePenalty float64     `json:"score_penalty"`
+	Details      string      `json:"details"`
+	RawData      interface{} `json:"raw_data"`
+}
+
+// RiskLevel - Уровень риска
+type RiskLevel string
+
+const (
+	RiskLevelLow      RiskLevel = "LOW"
+	RiskLevelMedium   RiskLevel = "MEDIUM"
+	RiskLevelHigh     RiskLevel = "HIGH"
+	RiskLevelCritical RiskLevel = "CRITICAL"
+)
+
+// TokenInfo - Информация о токене
+type TokenInfo struct {
+	Address  string  `json:"address"`
+	Name     string  `json:"name"`
+	Symbol   string  `json:"symbol"`
+	Balance  float64 `json:"balance"`
+	USDValue float64 `json:"usd_value"`
+	IsStable bool    `json:"is_stable"`
+}
+
+// ApprovalInfo - Информация о разрешении на токен
+type ApprovalInfo struct {
+	TokenAddress    string  `json:"token_address"`
+	TokenName       string  `json:"token_name"`
+	SpenderAddress  string  `json:"spender_address"`
+	ExposureBalance float64 `json:"exposure_balance"`
+	IsUnlimited     bool    `json:"is_unlimited"`
+	IsMalicious     bool    `json:"is_malicious"`
+}

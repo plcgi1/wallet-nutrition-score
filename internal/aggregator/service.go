@@ -1,0 +1,151 @@
+package aggregator
+
+import (
+	"context"
+	"time"
+
+	"wallet-nutrition-score/config"
+	"wallet-nutrition-score/internal/cache"
+	"wallet-nutrition-score/internal/checker"
+	"wallet-nutrition-score/internal/entity"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+)
+
+// CheckFactory - Интерфейс для фабрики проверок
+type CheckFactory interface {
+	CreateCheck(t checker.CheckType) checker.IHealthCheck
+}
+
+// Service - Агрегатор проверок
+type Service struct {
+	cfg     *config.Config
+	factory CheckFactory
+	cache   cache.Cache
+	log     *logrus.Logger
+}
+
+// NewService - Создает новый агрегатор
+func NewService(cfg *config.Config, factory CheckFactory, cache cache.Cache, log *logrus.Logger) *Service {
+	logger := log.WithFields(logrus.Fields{"component": "service"}).Logger
+	return &Service{
+		cfg:     cfg,
+		factory: factory,
+		cache:   cache,
+		log:     logger,
+	}
+}
+
+// CheckWallet - Проверяет безопасность кошелька
+func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.WalletReport, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(s.cfg.App.TimeoutSec)*time.Second)
+	defer cancel()
+
+	// Проверяем кэш
+	if s.cache != nil {
+		cachedReport, err := s.cache.GetWalletReport(ctx, address)
+		if err != nil {
+			s.log.Errorf("Failed to get cached report: %v", err)
+		}
+		if cachedReport != nil {
+			s.log.Debugf("Returning cached report for address: %s", address)
+			return cachedReport, nil
+		}
+	}
+
+	// Создаем группу для параллельного запуска проверок
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Получаем все доступные проверки
+	checkTypes := checker.GetAllCheckTypes()
+	resultsChan := make(chan *entity.CheckResult, len(checkTypes))
+	errorsChan := make(chan error, len(checkTypes))
+
+	// Запускаем каждую проверку в отдельной горутине
+	for _, t := range checkTypes {
+		checkType := t
+		g.Go(func() error {
+			check := s.factory.CreateCheck(checkType)
+			if check == nil {
+				return nil
+			}
+
+			s.log.Debugf("Executing check: %s for address: %s", check.Name(), address)
+			result, err := check.Execute(ctx, address)
+			if err != nil {
+				errorsChan <- err
+				return nil
+			}
+
+			resultsChan <- result
+			return nil
+		})
+	}
+
+	// Ожидаем завершения всех проверок
+	if err := g.Wait(); err != nil {
+		s.log.Errorf("Error during checks: %v", err)
+	}
+	close(resultsChan)
+	close(errorsChan)
+
+	// Собираем результаты
+	var results []*entity.CheckResult
+	for res := range resultsChan {
+		if res != nil {
+			results = append(results, res)
+		}
+	}
+
+	// Собираем ошибки
+	var errors []string
+	for err := range errorsChan {
+		if err != nil {
+			errors = append(errors, err.Error())
+		}
+	}
+
+	// Рассчитываем итоговый балл
+	score := s.calculateScore(results)
+
+	// Формируем отчет
+	report := &entity.WalletReport{
+		Address: address,
+		Score:   score,
+		Checks:  make([]entity.CheckResult, len(results)),
+		Errors:  errors,
+	}
+
+	for i, res := range results {
+		report.Checks[i] = *res
+	}
+
+	s.log.Infof("Check completed for address: %s, score: %.2f", address, score)
+
+	// Сохраняем в кэш
+	if s.cache != nil {
+		if err := s.cache.SetWalletReport(ctx, address, report); err != nil {
+			s.log.Errorf("Failed to cache report: %v", err)
+		}
+	}
+
+	return report, nil
+}
+
+// calculateScore - Рассчитывает итоговый балл безопасности
+func (s *Service) calculateScore(results []*entity.CheckResult) float64 {
+	score := s.cfg.Scoring.BaseScore
+
+	for _, res := range results {
+		if res.RiskFound {
+			score -= res.ScorePenalty
+		}
+	}
+
+	if score < 0 {
+		score = 0
+	}
+
+	return score
+}

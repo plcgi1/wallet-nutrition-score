@@ -1,0 +1,197 @@
+package provider
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"time"
+
+	"wallet-nutrition-score/config"
+
+	"github.com/sirupsen/logrus"
+)
+
+// GoPlusClient - Клиент для GoPlus Security API
+type GoPlusClient struct {
+	apiKey    string
+	apiSecret string
+	client    *http.Client
+	log       *logrus.Logger
+}
+
+// NewGoPlusClient - Создает новый клиент GoPlus
+func NewGoPlusClient(cfg *config.Config, log *logrus.Logger) *GoPlusClient {
+	return &GoPlusClient{
+		apiKey:    cfg.GoPlus.ApiKey,
+		apiSecret: cfg.GoPlus.ApiSecret,
+		client: &http.Client{
+			Timeout: time.Duration(cfg.App.TimeoutSec) * time.Second,
+		},
+		log: log,
+	}
+}
+
+// GoPlusResponse — корневая структура ответа
+type TokenApprovalResponse struct {
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Result  []TokenApproval `json:"result"`
+}
+
+// TokenApproval — информация о токене и его аппрувах
+type TokenApproval struct {
+	TokenAddress      string            `json:"token_address"`
+	ChainID           string            `json:"chain_id"`
+	TokenName         string            `json:"token_name"`
+	TokenSymbol       string            `json:"token_symbol"`
+	Decimals          int               `json:"decimals"`
+	Balance           string            `json:"balance"` // Строка, т.к. может быть BigInt
+	IsOpenSource      int               `json:"is_open_source"`
+	MaliciousAddress  int               `json:"malicious_address"`
+	MaliciousBehavior []interface{}     `json:"malicious_behavior"` // interface{}, так как массив пустой, тип неизвестен (обычно строки)
+	ApprovedList      []ApprovedSpender `json:"approved_list"`
+}
+
+// ApprovedSpender — кому выдано разрешение
+type ApprovedSpender struct {
+	ApprovedContract    string      `json:"approved_contract"`
+	ApprovedAmount      string      `json:"approved_amount"` // "Unlimited" или число в строке
+	ApprovedTime        int64       `json:"approved_time"`
+	InitialApprovalTime int64       `json:"initial_approval_time"`
+	InitialApprovalHash string      `json:"initial_approval_hash"`
+	Hash                string      `json:"hash"`
+	AddressInfo         AddressInfo `json:"address_info"`
+}
+
+// AddressInfo — информация о контракте-спендере
+type AddressInfo struct {
+	ContractName      string        `json:"contract_name"`
+	Tag               *string       `json:"tag"` // *string, так как в JSON пришел null
+	CreatorAddress    string        `json:"creator_address"`
+	IsContract        int           `json:"is_contract"`
+	DoubtList         int           `json:"doubt_list"` // 1 если есть сомнения
+	MaliciousBehavior []interface{} `json:"malicious_behavior"`
+	DeployedTime      int64         `json:"deployed_time"`
+	TrustList         int           `json:"trust_list"` // 1 если доверенный
+	IsOpenSource      int           `json:"is_open_source"`
+}
+
+// TokenApprovalResponse - Ответ API GoPlus для токен approvals
+// type TokenApprovalResponse struct {
+// 	Code    int    `json:"code"`
+// 	Message string `json:"message"`
+// 	Result  struct {
+// 		Address   string `json:"address"`
+// 		Approvals []struct {
+// 			TokenAddress string  `json:"token_address"`
+// 			TokenName    string  `json:"token_name"`
+// 			Spender      string  `json:"spender"`
+// 			Exposure     float64 `json:"exposure_balance"`
+// 			ApprovalType string  `json:"approval_type"`
+// 			IsMalicious  bool    `json:"is_malicious_spender"`
+// 		} `json:"approvals"`
+// 	} `json:"result"`
+// }
+
+// TokenSecurityResponse - Ответ API GoPlus для токен security
+type TokenSecurityResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Result  map[string]struct {
+		IsHoneypot    bool `json:"is_honeypot"`
+		CannotSellAll bool `json:"cannot_sell_all"`
+		IsBlacklisted bool `json:"is_blacklisted"`
+		IsFakeToken   bool `json:"is_fake_token"`
+	} `json:"result"`
+}
+
+// GetTokenApprovals - Получает информацию о токен approvals
+func (c *GoPlusClient) GetTokenApprovals(ctx context.Context, address string) (*TokenApprovalResponse, error) {
+	url := fmt.Sprintf("https://api.gopluslabs.io/api/v2/token_approval_security/1?addresses=%s", address)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("API-Key", c.apiKey)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Логируем (превращаем в строку)
+	logrus.WithField("body", string(bodyBytes)).Info("Response received")
+	// fmt.Printf("RESPONSE BODY: %s\n", string(bodyBytes))
+
+	var result TokenApprovalResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != 200 {
+		return nil, fmt.Errorf("GoPlus API error: %s", result.Message)
+	}
+
+	return &result, nil
+}
+
+// GetTokenSecurity - Получает информацию о безопасности токенов
+func (c *GoPlusClient) GetTokenSecurity(ctx context.Context, tokenAddresses []string) (*TokenSecurityResponse, error) {
+	payload := map[string]interface{}{
+		"chain_id":           1,
+		"contract_addresses": tokenAddresses,
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	url := "https://api.gopluslabs.io/api/v1/token_security/security"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("API-Key", c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result TokenSecurityResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != 200 {
+		return nil, fmt.Errorf("GoPlus API error: %s", result.Message)
+	}
+
+	return &result, nil
+}
+
+// getEnv - Получает значение переменной окружения
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
+
+// (Note: В реальной реализации config.getEnv должен быть реальным методом или использовать os.Getenv)

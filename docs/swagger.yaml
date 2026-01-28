@@ -1,0 +1,116 @@
+basePath: /
+definitions:
+  entity.CheckResult:
+    properties:
+      check_name:
+        type: string
+      details:
+        type: string
+      raw_data: {}
+      risk_found:
+        type: boolean
+      risk_level:
+        $ref: '#/definitions/entity.RiskLevel'
+      score_penalty:
+        type: number
+    type: object
+  entity.RiskLevel:
+    enum:
+    - LOW
+    - MEDIUM
+    - HIGH
+    - CRITICAL
+    type: string
+    x-enum-varnames:
+    - RiskLevelLow
+    - RiskLevelMedium
+    - RiskLevelHigh
+    - RiskLevelCritical
+  main.CheckWalletRequest:
+    properties:
+      address:
+        type: string
+    required:
+    - address
+    type: object
+  main.CheckWalletResponse:
+    properties:
+      address:
+        type: string
+      checks:
+        items:
+          $ref: '#/definitions/entity.CheckResult'
+        type: array
+      errors:
+        items:
+          type: string
+        type: array
+      score:
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for checking wallet security and calculating nutrition score
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Wallet Nutrition Score API
+  version: "1.0"
+paths:
+  /api/check:
+    post:
+      consumes:
+      - application/json
+      description: Check wallet security and get nutrition score
+      parameters:
+      - description: Wallet address to check
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/main.CheckWalletRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.CheckWalletResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Check wallet security
+      tags:
+      - wallet
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the service is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+swagger: "2.0"

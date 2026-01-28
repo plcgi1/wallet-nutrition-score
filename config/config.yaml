@@ -1,0 +1,26 @@
+app:
+  port: 8080
+  log_level: "debug"
+  timeout_sec: 30
+
+goplus:
+  key: "YOUR_KEY"
+  secret: "YOUR_SECRET"
+
+etherscan:
+  url: "https://api.etherscan.io"
+  key: "YOUR_KEY"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+scoring:
+  base_score: 100
+  weights:
+    approvals: 0.4
+    scam_tokens: 0.2
+    rug_pulls: 0.2
+    dead_nft: 0.1
+    asset_ratio: 0.1
