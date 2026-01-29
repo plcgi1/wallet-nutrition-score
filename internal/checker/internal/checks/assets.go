@@ -1,15 +1,15 @@
 package checks
 
 import (
+	"alpha-hygiene-backend/config"
 	"context"
 	"fmt"
 	"math/big"
 	"strconv"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/entity"
-	"wallet-nutrition-score/internal/provider"
-	"wallet-nutrition-score/pkg/util"
+	"alpha-hygiene-backend/internal/entity"
+	"alpha-hygiene-backend/internal/provider"
+	"alpha-hygiene-backend/pkg/util"
 
 	"github.com/sirupsen/logrus"
 )

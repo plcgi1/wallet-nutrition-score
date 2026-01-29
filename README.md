@@ -62,8 +62,8 @@ docker-compose up -d
 ### Docker (по отдельности)
 
 ```bash
-docker build -t wallet-nutrition-score .
-docker run -p 8080:8080 --env-file .env --link redis:redis wallet-nutrition-score
+docker build -t alpha-hygiene-backend .
+docker run -p 8080:8080 --env-file .env --link redis:redis alpha-hygiene-backend
 ```
 
 ## API Endpoints

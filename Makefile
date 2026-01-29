@@ -1,7 +1,7 @@
 .PHONY: build run test clean swag init
 
 # Configuration
-APP_NAME := wallet-nutrition-score
+APP_NAME := alpha-hygiene-backend
 BINARY_NAME := $(APP_NAME)
 MAIN_PACKAGE := ./cmd/app
 SWAG := $(shell go env GOPATH)/bin/swag

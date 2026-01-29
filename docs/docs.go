@@ -24,8 +24,8 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/check/{address}": {
-            "get": {
+        "/api/check": {
+            "post": {
                 "description": "Check wallet security and get nutrition score",
                 "consumes": [
                     "application/json"
@@ -39,12 +39,13 @@ const docTemplate = `{
                 "summary": "Check wallet security",
                 "parameters": [
                     {
-                        "type": "string",
-                        "format": "eth_addr",
-                        "description": "Wallet address to check (must be valid Ethereum address starting with 0x)",
-                        "name": "address",
-                        "in": "path",
-                        "required": true
+                        "description": "Wallet address to check",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.CheckWalletRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -138,6 +139,18 @@ const docTemplate = `{
                 "RiskLevelHigh",
                 "RiskLevelCritical"
             ]
+        },
+        "main.CheckWalletRequest": {
+            "type": "object",
+            "required": [
+                "address"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "0x0000db5c8B030ae20308ac975898E09741e70000"
+                }
+            }
         },
         "main.CheckWalletResponse": {
             "type": "object",

@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/checker"
-	"wallet-nutrition-score/internal/entity"
-	"wallet-nutrition-score/pkg/logger"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/internal/checker"
+	"alpha-hygiene-backend/internal/entity"
+	"alpha-hygiene-backend/pkg/logger"
 
 	"github.com/stretchr/testify/assert"
 )

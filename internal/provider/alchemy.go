@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/pkg/util"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/pkg/util"
 
 	"github.com/sirupsen/logrus"
 )

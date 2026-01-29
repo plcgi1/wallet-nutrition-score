@@ -26,6 +26,14 @@ definitions:
     - RiskLevelMedium
     - RiskLevelHigh
     - RiskLevelCritical
+  main.CheckWalletRequest:
+    properties:
+      address:
+        example: 0x0000db5c8B030ae20308ac975898E09741e70000
+        type: string
+    required:
+    - address
+    type: object
   main.CheckWalletResponse:
     properties:
       address:
@@ -57,19 +65,18 @@ info:
   title: Wallet Nutrition Score API
   version: "1.0"
 paths:
-  /api/check/{address}:
-    get:
+  /api/check:
+    post:
       consumes:
       - application/json
       description: Check wallet security and get nutrition score
       parameters:
-      - description: Wallet address to check (must be valid Ethereum address starting
-          with 0x)
-        format: eth_addr
-        in: path
-        name: address
+      - description: Wallet address to check
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/main.CheckWalletRequest'
       produces:
       - application/json
       responses:

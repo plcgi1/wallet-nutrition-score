@@ -1,9 +1,9 @@
 package checker
 
 import (
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/checker/internal/checks"
-	"wallet-nutrition-score/internal/provider"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/internal/checker/internal/checks"
+	"alpha-hygiene-backend/internal/provider"
 
 	"github.com/sirupsen/logrus"
 )

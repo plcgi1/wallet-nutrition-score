@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"wallet-nutrition-score/config"
+	"alpha-hygiene-backend/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/entity"
-	"wallet-nutrition-score/internal/provider"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/internal/entity"
+	"alpha-hygiene-backend/internal/provider"
 
 	"github.com/sirupsen/logrus"
 )

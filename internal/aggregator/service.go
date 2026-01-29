@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/cache"
-	"wallet-nutrition-score/internal/checker"
-	"wallet-nutrition-score/internal/entity"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/internal/cache"
+	"alpha-hygiene-backend/internal/checker"
+	"alpha-hygiene-backend/internal/entity"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"

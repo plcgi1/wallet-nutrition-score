@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  wallet-nutrition-score:
+  alpha-hygiene-backend:
     build: .
     ports:
       - "8080:8080"
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: wallet-nutrition-score-redis
+    container_name: alpha-hygiene-backend-redis
     ports:
       - "6380:6379"
     volumes:

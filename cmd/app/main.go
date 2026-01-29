@@ -10,15 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	"wallet-nutrition-score/config"
-	_ "wallet-nutrition-score/docs"
-	"wallet-nutrition-score/internal/aggregator"
-	"wallet-nutrition-score/internal/cache"
-	"wallet-nutrition-score/internal/checker"
-	"wallet-nutrition-score/internal/entity"
-	"wallet-nutrition-score/internal/middleware"
-	"wallet-nutrition-score/internal/provider"
-	"wallet-nutrition-score/pkg/logger"
+	"alpha-hygiene-backend/config"
+	_ "alpha-hygiene-backend/docs"
+	"alpha-hygiene-backend/internal/aggregator"
+	"alpha-hygiene-backend/internal/cache"
+	"alpha-hygiene-backend/internal/checker"
+	"alpha-hygiene-backend/internal/entity"
+	"alpha-hygiene-backend/internal/middleware"
+	"alpha-hygiene-backend/internal/provider"
+	"alpha-hygiene-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -86,13 +86,12 @@ func main() {
 	r := gin.New()
 	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		logEntry := map[string]interface{}{
-			"time":     param.TimeStamp.Format(time.RFC3339),
-			"method":   param.Method,
-			"path":     param.Path,
-			"status":   param.StatusCode,
-			"latency":  param.Latency.String(),
-			"clientIP": param.ClientIP,
-			"error":    param.ErrorMessage,
+			"time":    param.TimeStamp.Format(time.RFC3339),
+			"method":  param.Method,
+			"path":    param.Path,
+			"status":  param.StatusCode,
+			"latency": param.Latency.String(),
+			"error":   param.ErrorMessage,
 		}
 		jsonStr, err := json.Marshal(logEntry)
 		if err != nil {
@@ -126,7 +125,7 @@ func main() {
 
 	// Обработчики
 	r.GET("/health", healthCheckHandler(log))
-	r.GET("/api/check/:address", checkWalletHandler(aggregatorService, log))
+	r.POST("/api/check", checkWalletHandler(aggregatorService, log))
 
 	// Запуск сервера
 	server := &http.Server{
@@ -178,6 +177,11 @@ func healthCheckHandler(log *logrus.Logger) gin.HandlerFunc {
 	}
 }
 
+// CheckWalletRequest - Запрос на проверку кошелька
+type CheckWalletRequest struct {
+	Address string `json:"address" validate:"required,eth_addr" example:"0x0000db5c8B030ae20308ac975898E09741e70000"`
+}
+
 // CheckWalletResponse - Ответ с результатом проверки кошелька
 type CheckWalletResponse struct {
 	*entity.WalletReport `json:",inline"`
@@ -189,17 +193,25 @@ type CheckWalletResponse struct {
 // @Tags wallet
 // @Accept  json
 // @Produce  json
-// @Param address path string true "Wallet address to check (must be valid Ethereum address starting with 0x)" format(eth_addr)
+// @Param request body CheckWalletRequest true "Wallet address to check"
 // @Success 200 {object} CheckWalletResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /api/check/{address} [get]
+// @Router /api/check [post]
 func checkWalletHandler(service *aggregator.Service, log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		address := c.Param("address")
+		var req CheckWalletRequest
 
-		// Валидация Ethereum адреса
-		if err := validateAddress(address); err != nil {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			log.Errorf("Failed to parse request: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid request format",
+			})
+			return
+		}
+
+		// Валидация запроса
+		if err := validateAddress(req.Address); err != nil {
 			log.Errorf("Validation failed: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
@@ -208,7 +220,7 @@ func checkWalletHandler(service *aggregator.Service, log *logrus.Logger) gin.Han
 		}
 
 		ctx := c.Request.Context()
-		report, err := service.CheckWallet(ctx, address)
+		report, err := service.CheckWallet(ctx, req.Address)
 		if err != nil {
 			log.Errorf("Check wallet failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{

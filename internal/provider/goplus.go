@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"wallet-nutrition-score/config"
+	"alpha-hygiene-backend/config"
 
 	"github.com/sirupsen/logrus"
 )

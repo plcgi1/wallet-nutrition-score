@@ -3,7 +3,7 @@ package checker
 import (
 	"context"
 
-	"wallet-nutrition-score/internal/entity"
+	"alpha-hygiene-backend/internal/entity"
 )
 
 // IHealthCheck - Контракт для любой проверки

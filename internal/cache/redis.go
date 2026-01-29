@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"wallet-nutrition-score/config"
-	"wallet-nutrition-score/internal/entity"
+	"alpha-hygiene-backend/config"
+	"alpha-hygiene-backend/internal/entity"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
