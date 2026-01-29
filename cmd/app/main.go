@@ -126,7 +126,7 @@ func main() {
 
 	// Обработчики
 	r.GET("/health", healthCheckHandler(log))
-	r.POST("/api/check", checkWalletHandler(aggregatorService, log))
+	r.GET("/api/check/:address", checkWalletHandler(aggregatorService, log))
 
 	// Запуск сервера
 	server := &http.Server{
@@ -178,11 +178,6 @@ func healthCheckHandler(log *logrus.Logger) gin.HandlerFunc {
 	}
 }
 
-// CheckWalletRequest - Запрос на проверку кошелька
-type CheckWalletRequest struct {
-	Address string `json:"address" validate:"required,eth_addr"`
-}
-
 // CheckWalletResponse - Ответ с результатом проверки кошелька
 type CheckWalletResponse struct {
 	*entity.WalletReport `json:",inline"`
@@ -194,25 +189,17 @@ type CheckWalletResponse struct {
 // @Tags wallet
 // @Accept  json
 // @Produce  json
-// @Param request body CheckWalletRequest true "Wallet address to check"
+// @Param address path string true "Wallet address to check (must be valid Ethereum address starting with 0x)" format(eth_addr)
 // @Success 200 {object} CheckWalletResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /api/check [post]
+// @Router /api/check/{address} [get]
 func checkWalletHandler(service *aggregator.Service, log *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req CheckWalletRequest
+		address := c.Param("address")
 
-		if err := c.ShouldBindJSON(&req); err != nil {
-			log.Errorf("Failed to parse request: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid request format",
-			})
-			return
-		}
-
-		// Валидация запроса
-		if err := validateRequest(&req); err != nil {
+		// Валидация Ethereum адреса
+		if err := validateAddress(address); err != nil {
 			log.Errorf("Validation failed: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
@@ -221,7 +208,7 @@ func checkWalletHandler(service *aggregator.Service, log *logrus.Logger) gin.Han
 		}
 
 		ctx := c.Request.Context()
-		report, err := service.CheckWallet(ctx, req.Address)
+		report, err := service.CheckWallet(ctx, address)
 		if err != nil {
 			log.Errorf("Check wallet failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -236,21 +223,21 @@ func checkWalletHandler(service *aggregator.Service, log *logrus.Logger) gin.Han
 	}
 }
 
-// validateRequest - Валидация запроса с помощью validator
-func validateRequest(req *CheckWalletRequest) error {
+// validateAddress - Валидация Ethereum адреса
+func validateAddress(address string) error {
 	validate := validator.New()
 
 	// Кастомный валидатор для Ethereum адресов
 	validate.RegisterValidation("eth_addr", func(fl validator.FieldLevel) bool {
-		address := fl.Field().String()
-		if len(address) != 42 {
+		addr := fl.Field().String()
+		if len(addr) != 42 {
 			return false
 		}
-		if address[:2] != "0x" {
+		if addr[:2] != "0x" {
 			return false
 		}
 		// Проверка на наличие только hex символов
-		for _, c := range address[2:] {
+		for _, c := range addr[2:] {
 			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
 				return false
 			}
@@ -258,5 +245,10 @@ func validateRequest(req *CheckWalletRequest) error {
 		return true
 	})
 
+	type AddressRequest struct {
+		Address string `validate:"required,eth_addr"`
+	}
+
+	req := AddressRequest{Address: address}
 	return validate.Struct(req)
 }

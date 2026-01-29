@@ -64,8 +64,6 @@ func TestCheckWallet(t *testing.T) {
 	// Создаем мок для кэша
 	mockCache := &mockCache{}
 
-	// Создаем сервис
-
 	service := NewService(cfg, mockFactory, mockCache, log.WithContext(t.Context()))
 
 	// Тестируем проверку кошелька

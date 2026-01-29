@@ -1,11 +1,20 @@
 package entity
 
+// Language - Язык для отчета
+type Language string
+
+const (
+	LanguageEN Language = "en"
+	LanguageRU Language = "ru"
+)
+
 // WalletReport - Финальный отчет о безопасности кошелька
 type WalletReport struct {
-	Address string        `json:"address"`
-	Score   float64       `json:"score"`
-	Checks  []CheckResult `json:"checks"`
-	Errors  []string      `json:"errors,omitempty"`
+	Address         string        `json:"address"`
+	Score           float64       `json:"score"`
+	Checks          []CheckResult `json:"checks"`
+	Errors          []string      `json:"errors,omitempty"`
+	Recommendations string        `json:"recommendations,omitempty"`
 }
 
 // CheckResult - Результат одной проверки

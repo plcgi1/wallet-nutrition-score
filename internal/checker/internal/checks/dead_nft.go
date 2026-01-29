@@ -35,6 +35,8 @@ func (c *DeadNFTCheck) Name() string {
 	return "dead_nft"
 }
 
+// для тестов - 0x0000db5c8B030ae20308ac975898E09741e70000
+
 // Execute - Выполняет проверку
 func (c *DeadNFTCheck) Execute(ctx context.Context, address string) (*entity.CheckResult, error) {
 	c.log.Debugf("Checking for dead NFTs for address: %s", address)
@@ -81,13 +83,9 @@ func (c *DeadNFTCheck) Execute(ctx context.Context, address string) (*entity.Che
 
 	riskFound := len(deadNFTs) > 0
 	var scorePenalty float64
-	var details string
 
 	if riskFound {
 		scorePenalty = c.cfg.Scoring.Weights["dead_nft"] * 100
-		details = fmt.Sprintf("Found %d dead NFTs", len(deadNFTs))
-	} else {
-		details = "No dead NFTs found"
 	}
 
 	return &entity.CheckResult{
@@ -95,7 +93,6 @@ func (c *DeadNFTCheck) Execute(ctx context.Context, address string) (*entity.Che
 		RiskFound:    riskFound,
 		RiskLevel:    entity.RiskLevelLow,
 		ScorePenalty: scorePenalty,
-		Details:      details,
 		RawData:      deadNFTs,
 	}, nil
 }

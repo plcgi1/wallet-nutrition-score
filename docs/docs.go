@@ -24,8 +24,8 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/check": {
-            "post": {
+        "/api/check/{address}": {
+            "get": {
                 "description": "Check wallet security and get nutrition score",
                 "consumes": [
                     "application/json"
@@ -39,13 +39,12 @@ const docTemplate = `{
                 "summary": "Check wallet security",
                 "parameters": [
                     {
-                        "description": "Wallet address to check",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.CheckWalletRequest"
-                        }
+                        "type": "string",
+                        "format": "eth_addr",
+                        "description": "Wallet address to check (must be valid Ethereum address starting with 0x)",
+                        "name": "address",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -140,17 +139,6 @@ const docTemplate = `{
                 "RiskLevelCritical"
             ]
         },
-        "main.CheckWalletRequest": {
-            "type": "object",
-            "required": [
-                "address"
-            ],
-            "properties": {
-                "address": {
-                    "type": "string"
-                }
-            }
-        },
         "main.CheckWalletResponse": {
             "type": "object",
             "properties": {
@@ -168,6 +156,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "recommendations": {
+                    "type": "string"
                 },
                 "score": {
                     "type": "number"

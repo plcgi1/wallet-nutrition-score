@@ -100,5 +100,6 @@ func Load() (*Config, error) {
 			config.Redis.DB = db
 		}
 	}
+
 	return &config, nil
 }

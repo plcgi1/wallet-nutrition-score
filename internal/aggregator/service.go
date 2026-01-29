@@ -39,8 +39,8 @@ func NewService(cfg *config.Config, factory CheckFactory, cache cache.Cache, log
 
 // CheckWallet - Проверяет безопасность кошелька
 func (s *Service) CheckWallet(ctx context.Context, address string) (*entity.WalletReport, error) {
-	// Создаем основной контекст с таймаутом
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(s.cfg.App.TimeoutSec)*time.Second)
+	// Создаем основной контекст с таймаутом. Увеличиваем для AI сервиса.
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute) // 5 минут для работы с AI
 	defer cancel()
 	// Проверяем кэш
 	if s.cache != nil {

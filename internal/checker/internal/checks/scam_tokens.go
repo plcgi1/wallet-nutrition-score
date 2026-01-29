@@ -161,13 +161,9 @@ func (c *ScamTokensCheck) Execute(ctx context.Context, address string) (*entity.
 
 	riskFound := len(scamTokens) > 0
 	var scorePenalty float64
-	var details string
 
 	if riskFound {
 		scorePenalty = c.cfg.Scoring.Weights["scam_tokens"] * 100
-		details = fmt.Sprintf("Found %d scam tokens", len(scamTokens))
-	} else {
-		details = "No scam tokens found"
 	}
 
 	return &entity.CheckResult{
@@ -175,7 +171,6 @@ func (c *ScamTokensCheck) Execute(ctx context.Context, address string) (*entity.
 		RiskFound:    riskFound,
 		RiskLevel:    entity.RiskLevelHigh,
 		ScorePenalty: scorePenalty,
-		Details:      details,
 		RawData:      scamTokens,
 	}, nil
 }

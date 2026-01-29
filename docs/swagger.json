@@ -18,8 +18,8 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
-        "/api/check": {
-            "post": {
+        "/api/check/{address}": {
+            "get": {
                 "description": "Check wallet security and get nutrition score",
                 "consumes": [
                     "application/json"
@@ -33,13 +33,12 @@
                 "summary": "Check wallet security",
                 "parameters": [
                     {
-                        "description": "Wallet address to check",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/main.CheckWalletRequest"
-                        }
+                        "type": "string",
+                        "format": "eth_addr",
+                        "description": "Wallet address to check (must be valid Ethereum address starting with 0x)",
+                        "name": "address",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -134,17 +133,6 @@
                 "RiskLevelCritical"
             ]
         },
-        "main.CheckWalletRequest": {
-            "type": "object",
-            "required": [
-                "address"
-            ],
-            "properties": {
-                "address": {
-                    "type": "string"
-                }
-            }
-        },
         "main.CheckWalletResponse": {
             "type": "object",
             "properties": {
@@ -162,6 +150,9 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "recommendations": {
+                    "type": "string"
                 },
                 "score": {
                     "type": "number"
