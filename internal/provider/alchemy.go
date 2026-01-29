@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"time"
@@ -75,30 +74,11 @@ func (c *AlchemyClient) GetETHBalance(ctx context.Context, address string) (floa
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Alchemy API request failed: %v", err)
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return 0, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		c.log.Errorf("Alchemy API error: %s", string(body))
-		return 0, fmt.Errorf("Alchemy API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
 	var response struct {
 		Result string `json:"result"`
 	}
 
-	if err := json.Unmarshal(body, &response); err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
+	if err := c.DoRequest(ctx, req, &response); err != nil {
 		return 0, err
 	}
 
@@ -154,31 +134,8 @@ func (c *AlchemyClient) GetERC20Tokens(ctx context.Context, address string) ([]*
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Alchemy API request failed: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return nil, err
-	}
-
-	// c.log.Debugf("Alchemy API response for address %s: %s", address, string(body))
-
-	if resp.StatusCode != http.StatusOK {
-		c.log.Errorf("Alchemy API error: %s", string(body))
-		return nil, fmt.Errorf("Alchemy API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
 	var response AlchemyERC20Response
-
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
+	if err := c.DoRequest(ctx, req, &response); err != nil {
 		return nil, err
 	}
 
@@ -252,29 +209,8 @@ func (c *AlchemyClient) GetNFTs(ctx context.Context, address string) ([]*Alchemy
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Alchemy API request failed: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		c.log.Errorf("Alchemy API error: %s", string(body))
-		return nil, fmt.Errorf("Alchemy API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
 	var response AlchemyNFTApiResponse
-
-	if err := json.Unmarshal(body, &response); err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
+	if err := c.DoRequest(ctx, req, &response); err != nil {
 		return nil, err
 	}
 

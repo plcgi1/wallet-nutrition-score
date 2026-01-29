@@ -2,9 +2,7 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -87,28 +85,13 @@ func (c *EtherscanClient) GetETHBalance(ctx context.Context, address string) (fl
 		return 0, err
 	}
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Etherscan API request failed: %v", err)
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return 0, err
-	}
-
 	var result struct {
 		Status  string `json:"status"`
 		Message string `json:"message"`
 		Result  string `json:"result"`
 	}
 
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
+	if err := c.DoRequest(ctx, req, &result); err != nil {
 		return 0, err
 	}
 
@@ -146,28 +129,13 @@ func (c *EtherscanClient) GetInternalTransactions(ctx context.Context, address s
 		return nil, err
 	}
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		c.log.Errorf("Etherscan API request failed: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		c.log.Errorf("Failed to read response body: %v", err)
-		return nil, err
-	}
-
 	var result struct {
 		Status  string                   `json:"status"`
 		Message string                   `json:"message"`
 		Result  []map[string]interface{} `json:"result"`
 	}
 
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		c.log.Errorf("Failed to unmarshal response: %v", err)
+	if err := c.DoRequest(ctx, req, &result); err != nil {
 		return nil, err
 	}
 

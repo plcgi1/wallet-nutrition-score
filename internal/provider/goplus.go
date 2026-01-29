@@ -2,9 +2,7 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -123,20 +121,8 @@ func (c *GoPlusClient) GetTokenApprovals(ctx context.Context, address string) (*
 
 	req.Header.Set("API-Key", c.apiKey)
 
-	resp, err := c.client.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	var result TokenApprovalResponse
-	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+	if err := c.DoRequest(ctx, req, &result); err != nil {
 		return nil, err
 	}
 
@@ -158,14 +144,8 @@ func (c *GoPlusClient) GetTokenSecurity(ctx context.Context, tokenAddresses []st
 	req.Header.Set("API-Key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var result TokenSecurityResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := c.DoRequest(ctx, req, &result); err != nil {
 		return nil, err
 	}
 
