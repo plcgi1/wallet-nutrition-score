@@ -17,22 +17,22 @@ import (
 
 // GoPlusClient - Клиент для GoPlus Security API
 type GoPlusClient struct {
+	*BaseClient
 	apiKey    string
 	apiSecret string
-	client    *http.Client
-	log       *logrus.Entry
 }
 
 // NewGoPlusClient - Создает новый клиент GoPlus
 func NewGoPlusClient(cfg *config.Config, log *logrus.Entry) *GoPlusClient {
-	logger := log.WithFields(logrus.Fields{"component": "goplus"})
+	timeout := time.Duration(cfg.App.TimeoutSec) * time.Second
+	if cfg.App.TimeoutSec <= 0 {
+		timeout = 10 * time.Second // Default timeout
+	}
+	base := NewBaseClient(timeout, log, "goplus")
 	return &GoPlusClient{
-		apiKey:    cfg.GoPlus.ApiKey,
-		apiSecret: cfg.GoPlus.ApiSecret,
-		client: &http.Client{
-			Timeout: time.Duration(cfg.App.TimeoutSec) * time.Second,
-		},
-		log: logger,
+		BaseClient: base,
+		apiKey:     cfg.GoPlus.ApiKey,
+		apiSecret:  cfg.GoPlus.ApiSecret,
 	}
 }
 

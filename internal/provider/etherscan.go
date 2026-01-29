@@ -17,10 +17,9 @@ import (
 
 // EtherscanClient - Клиент для Etherscan API
 type EtherscanClient struct {
+	*BaseClient
 	apiKey  string
 	baseURL string
-	client  *http.Client
-	log     *logrus.Entry
 }
 
 // NewEtherscanClient - Создает новый клиент Etherscan
@@ -29,14 +28,15 @@ func NewEtherscanClient(cfg *config.Config, log *logrus.Entry) *EtherscanClient 
 	if baseURL == "" {
 		baseURL = "https://api.etherscan.io"
 	}
-	logger := log.WithFields(logrus.Fields{"component": "etherscan"})
+	timeout := 10 * time.Second
+	if cfg.App.TimeoutSec > 0 {
+		timeout = time.Duration(cfg.App.TimeoutSec) * time.Second
+	}
+	base := NewBaseClient(timeout, log, "etherscan")
 	return &EtherscanClient{
-		apiKey:  cfg.Etherscan.ApiKey,
-		baseURL: baseURL,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		log: logger,
+		BaseClient: base,
+		apiKey:     cfg.Etherscan.ApiKey,
+		baseURL:    baseURL,
 	}
 }
 
@@ -61,17 +61,6 @@ type TokenTransaction struct {
 	CumulativeGasUsed string `json:"cumulativeGasUsed"`
 	Input             string `json:"input"`
 	Confirmations     string `json:"confirmations"`
-}
-
-// TokenBalance - Структура для баланса токена
-type TokenBalance struct {
-	Account         string `json:"account"`
-	TokenID         string `json:"tokenID"`
-	ContractAddress string `json:"contractAddress"`
-	TokenName       string `json:"tokenName"`
-	TokenSymbol     string `json:"tokenSymbol"`
-	TokenDecimal    string `json:"tokenDecimal"`
-	Balance         string `json:"balance"`
 }
 
 // GetERC20Tokens - Получает список ERC20 токенов для адреса
